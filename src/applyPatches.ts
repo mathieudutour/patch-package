@@ -36,12 +36,13 @@ function getInstalledPackageVersion({
 }): string | null {
   const packageDir = join(appPath, path)
   if (!existsSync(packageDir)) {
-    console.log(
-      `${chalk.yellow(
-        "Warning:",
-      )} Patch file found for package ${posix.basename(pathSpecifier)}` +
-        ` which is not present at ${packageDir}`,
-    )
+    if (!existsSync(join(appPath, path)))
+      console.log(
+        `${chalk.yellow(
+          "Warning:",
+        )} Patch file found for package ${posix.basename(pathSpecifier)}` +
+          ` which is not present at ${packageDir}`,
+      )
 
     return null
   }
@@ -76,7 +77,14 @@ export function applyPatchesForApp({
       return
     }
 
-    const { name, version, path, pathSpecifier } = packageDetails
+    let { name, version, path, pathSpecifier } = packageDetails
+
+    if (
+      !existsSync(join(appPath, path)) &&
+      existsSync(join(appPath, "../..", path))
+    ) {
+      path = join("../..", path)
+    }
 
     const installedPackageVersion = getInstalledPackageVersion({
       appPath,
@@ -187,9 +195,9 @@ ${chalk.red("Warning:")} patch-package detected a patch file version mismatch
   applied to
 
     ${packageName}@${chalk.bold(actualVersion)}
-  
+
   At path
-  
+
     ${path}
 
   This warning is just to give you a heads-up. There is a small chance of
@@ -217,7 +225,7 @@ function printBrokenPatchFileError({
 ${chalk.red.bold("**ERROR**")} ${chalk.red(
     `Failed to apply patch for package ${chalk.bold(packageName)} at path`,
   )}
-  
+
     ${path}
 
   This error was caused because patch-package cannot apply the following patch file:
@@ -227,14 +235,14 @@ ${chalk.red.bold("**ERROR**")} ${chalk.red(
   Try removing node_modules and trying again. If that doesn't work, maybe there was
   an accidental change made to the patch file? Try recreating it by manually
   editing the appropriate files and running:
-  
+
     patch-package ${pathSpecifier}
-  
+
   If that doesn't work, then it's a bug in patch-package, so please submit a bug
   report. Thanks!
 
     https://github.com/ds300/patch-package/issues
-    
+
 `)
 }
 
@@ -257,7 +265,7 @@ function printPatchApplictionFailureError({
 ${chalk.red.bold("**ERROR**")} ${chalk.red(
     `Failed to apply patch for package ${chalk.bold(packageName)} at path`,
   )}
-  
+
     ${path}
 
   This error was caused because ${chalk.bold(packageName)} has changed since you
@@ -273,7 +281,7 @@ ${chalk.red.bold("**ERROR**")} ${chalk.red(
   To generate a new one, just repeat the steps you made to generate the first
   one.
 
-  i.e. manually make the appropriate file changes, then run 
+  i.e. manually make the appropriate file changes, then run
 
     patch-package ${pathSpecifier}
 
