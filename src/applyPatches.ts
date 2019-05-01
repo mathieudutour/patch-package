@@ -78,12 +78,26 @@ export function applyPatchesForApp({
     }
 
     let { name, version, path, pathSpecifier } = packageDetails
+    let olderCwd
 
+    // look for sibling modules
     if (
       !existsSync(join(appPath, path)) &&
       existsSync(join(appPath, "../..", path))
     ) {
       path = join("../..", path)
+      olderCwd = process.cwd()
+      process.chdir(join(appPath, "../.."))
+    }
+
+    // might be an organisation
+    if (
+      !existsSync(join(appPath, path)) &&
+      existsSync(join(appPath, "../../..", path))
+    ) {
+      path = join("../../..", path)
+      olderCwd = process.cwd()
+      process.chdir(join(appPath, "../../.."))
     }
 
     const installedPackageVersion = getInstalledPackageVersion({
@@ -104,6 +118,9 @@ export function applyPatchesForApp({
         patchDir,
       })
     ) {
+      if (olderCwd) {
+        process.chdir(olderCwd)
+      }
       // yay patch was applied successfully
       // print warning if version mismatch
       if (installedPackageVersion !== version) {
